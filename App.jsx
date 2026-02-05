@@ -1,51 +1,41 @@
 // App.jsx
-// A-to-Z single-file React app that recreates a District/BookMyShow-like Movies page UI.
-// Features:
-// - Sticky top nav
-// - Location selector
-// - Hero carousel
-// - Movie grid with cards
-// - Search + filters + sort
-// - Movie details modal
-// - Responsive
-// - Tailwind styling
+// District / BookMyShow-like Movies page — ONE FILE
+// ✅ No shadcn/ui
+// ✅ No alias @
+// ✅ Works with: Vite + React + Tailwind
+// ✅ Only extra packages: framer-motion, lucide-react
+//
+// How to run (local):
+// 1) npm create vite@latest district-one -- --template react
+// 2) cd district-one && npm i
+// 3) npm i framer-motion lucide-react
+// 4) Setup Tailwind (see steps in chat)
+// 5) Replace src/App.jsx with this file
+// 6) npm run dev
+//
+// Deploy (GitHub + Vercel):
+// - Push repo to GitHub
+// - Import in Vercel
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Search,
-  MapPin,
-  UserCircle2,
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Star,
   Clock,
   Filter,
-  ArrowUpDown,
-  X,
+  MapPin,
   PlayCircle,
+  Search,
+  Star,
   Ticket,
+  UserCircle2,
+  X,
 } from "lucide-react";
 
-// shadcn/ui
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-
 // -------------------------
-// Demo Data (Replace with API later)
+// Data (replace with your API later)
 // -------------------------
 const MOVIES = [
   {
@@ -174,38 +164,139 @@ const LOCATIONS = [
 
 const NAV_ITEMS = ["For you", "Dining", "Movies", "Events", "Stores", "Activities", "Play"];
 
+// -------------------------
+// Small helpers
+// -------------------------
 function minutesToHrMin(m) {
   const h = Math.floor(m / 60);
   const mm = m % 60;
   return `${h}h ${mm}m`;
 }
 
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
-}
-
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n));
+}
+
 // -------------------------
-// Main App
+// Reusable UI components (no libraries)
+// -------------------------
+function Btn({
+  children,
+  variant = "primary",
+  className = "",
+  onClick,
+  type = "button",
+  disabled,
+  ...rest
+}) {
+  const base =
+    "inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed";
+
+  const styles = {
+    primary: "bg-zinc-950 text-white hover:bg-zinc-900",
+    outline: "border border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50",
+    ghost: "bg-transparent text-zinc-800 hover:bg-zinc-100",
+    soft: "bg-zinc-100 text-zinc-950 hover:bg-zinc-200",
+  };
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={cx(base, styles[variant] || styles.primary, className)}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Badge({ children, variant = "soft", className = "" }) {
+  const base = "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold";
+  const styles = {
+    soft: "bg-zinc-100 text-zinc-900",
+    outline: "border border-zinc-200 bg-white text-zinc-900",
+    dark: "bg-zinc-950 text-white",
+  };
+  return <span className={cx(base, styles[variant] || styles.soft, className)}>{children}</span>;
+}
+
+function Card({ children, className = "" }) {
+  return <div className={cx("rounded-[22px] border border-zinc-200 bg-white shadow-sm", className)}>{children}</div>;
+}
+
+function Input({ value, onChange, placeholder, className = "" }) {
+  return (
+    <input
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={cx(
+        "h-11 w-full rounded-full border border-zinc-200 bg-white px-4 text-sm outline-none ring-zinc-950/10 focus:ring-4",
+        className
+      )}
+    />
+  );
+}
+
+function Divider() {
+  return <div className="h-px w-full bg-zinc-200" />;
+}
+
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[100]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <motion.div
+          className="absolute left-1/2 top-1/2 w-[94vw] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[26px] bg-white shadow-xl"
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.98 }}
+          transition={{ duration: 0.2 }}
+        >
+          {children}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// -------------------------
+// App
 // -------------------------
 export default function App() {
   const [activeNav, setActiveNav] = useState("Movies");
   const [location, setLocation] = useState(LOCATIONS[0]);
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("now");
 
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState("now"); // now | soon
   const [sort, setSort] = useState("popularity");
-  const [selectedLangs, setSelectedLangs] = useState(new Set());
-  const [selectedGenres, setSelectedGenres] = useState(new Set());
-  const [selectedFormats, setSelectedFormats] = useState(new Set());
+
+  const [langs, setLangs] = useState(new Set());
+  const [genres, setGenres] = useState(new Set());
+  const [formats, setFormats] = useState(new Set());
 
   const [heroIndex, setHeroIndex] = useState(0);
   const [openMovie, setOpenMovie] = useState(null);
 
-  const heroRef = useRef(null);
+  const heroMovies = useMemo(() => {
+    const now = MOVIES.filter((m) => m.status === "Now Showing");
+    return now.length ? now : MOVIES;
+  }, []);
+
+  const activeHero = heroMovies[clamp(heroIndex, 0, heroMovies.length - 1)];
 
   const allLangs = useMemo(() => {
     const s = new Set();
@@ -221,19 +312,12 @@ export default function App() {
 
   const allFormats = useMemo(() => {
     const s = new Set();
-    MOVIES.forEach((m) => m.format.forEach((f) => s.add(f)));
+    MOVIES.forEach((m) => m.format.forEach((f)) => s.add(f));
     return [...s].sort();
-  }, []);
-
-  const heroMovies = useMemo(() => {
-    // District-like: one big featured item.
-    const now = MOVIES.filter((m) => m.status === "Now Showing");
-    return now.length ? now : MOVIES;
   }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-
     let list = MOVIES.slice();
 
     if (tab === "now") list = list.filter((m) => m.status === "Now Showing");
@@ -246,33 +330,17 @@ export default function App() {
       });
     }
 
-    if (selectedLangs.size) {
-      list = list.filter((m) => selectedLangs.has(m.lang));
-    }
+    if (langs.size) list = list.filter((m) => langs.has(m.lang));
+    if (genres.size) list = list.filter((m) => m.genres.some((g) => genres.has(g)));
+    if (formats.size) list = list.filter((m) => m.format.some((f) => formats.has(f)));
 
-    if (selectedGenres.size) {
-      list = list.filter((m) => m.genres.some((g) => selectedGenres.has(g)));
-    }
-
-    if (selectedFormats.size) {
-      list = list.filter((m) => m.format.some((f) => selectedFormats.has(f)));
-    }
-
-    // Sort
-    if (sort === "popularity") {
-      list.sort((a, b) => b.votes - a.votes);
-    } else if (sort === "rating") {
-      list.sort((a, b) => b.rating - a.rating);
-    } else if (sort === "duration") {
-      list.sort((a, b) => a.durationMins - b.durationMins);
-    } else if (sort === "az") {
-      list.sort((a, b) => a.title.localeCompare(b.title));
-    }
+    if (sort === "popularity") list.sort((a, b) => b.votes - a.votes);
+    if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
+    if (sort === "duration") list.sort((a, b) => a.durationMins - b.durationMins);
+    if (sort === "az") list.sort((a, b) => a.title.localeCompare(b.title));
 
     return list;
-  }, [query, tab, sort, selectedLangs, selectedGenres, selectedFormats]);
-
-  const activeHero = heroMovies[clamp(heroIndex, 0, heroMovies.length - 1)];
+  }, [query, tab, sort, langs, genres, formats]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -290,12 +358,12 @@ export default function App() {
     });
   }
 
-  function clearFilters() {
-    setSelectedLangs(new Set());
-    setSelectedGenres(new Set());
-    setSelectedFormats(new Set());
+  function clearAll() {
     setQuery("");
     setSort("popularity");
+    setLangs(new Set());
+    setGenres(new Set());
+    setFormats(new Set());
   }
 
   return (
@@ -310,34 +378,24 @@ export default function App() {
       {/* Hero */}
       <section className="w-full">
         <div className="mx-auto max-w-7xl px-4 pt-6">
-          <div className="relative overflow-hidden rounded-[28px] border bg-gradient-to-b from-zinc-50 to-white shadow-sm">
+          <div className="relative overflow-hidden rounded-[28px] border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white shadow-sm">
             <div className="absolute inset-0">
-              <img
-                src={activeHero.banner}
-                alt="hero"
-                className="h-full w-full object-cover opacity-[0.12]"
-              />
+              <img src={activeHero.banner} alt="hero" className="h-full w-full object-cover opacity-[0.12]" />
             </div>
 
             <div className="relative grid gap-8 p-6 md:grid-cols-[1.2fr_0.8fr] md:p-10">
               <div className="flex flex-col justify-center">
                 <div className="mb-4 flex items-center gap-2">
-                  <Badge variant="secondary" className="rounded-full">
-                    {activeHero.cert}
-                  </Badge>
-                  <Badge variant="outline" className="rounded-full">
-                    {activeHero.status}
-                  </Badge>
+                  <Badge>{activeHero.cert}</Badge>
+                  <Badge variant="outline">{activeHero.status}</Badge>
                   <div className="ml-1 flex items-center gap-1 text-sm text-zinc-700">
                     <Star className="h-4 w-4" />
-                    <span className="font-medium">{activeHero.rating}</span>
+                    <span className="font-semibold">{activeHero.rating}</span>
                     <span className="text-zinc-500">({activeHero.votes.toLocaleString()})</span>
                   </div>
                 </div>
 
-                <h1 className="text-4xl font-black tracking-tight md:text-6xl">
-                  {activeHero.title}
-                </h1>
+                <h1 className="text-4xl font-black tracking-tight md:text-6xl">{activeHero.title}</h1>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-700">
                   <span className="font-semibold">{activeHero.lang}</span>
@@ -352,39 +410,26 @@ export default function App() {
                   <span>{activeHero.format.join(" / ")}</span>
                 </div>
 
-                <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-700">
-                  {activeHero.synopsis}
-                </p>
+                <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-700">{activeHero.synopsis}</p>
 
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Button
-                    size="lg"
-                    className="rounded-full px-7"
-                    onClick={() => setOpenMovie(activeHero)}
-                  >
-                    <Ticket className="mr-2 h-5 w-5" />
-                    Book now
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full px-7"
-                    onClick={() => setOpenMovie(activeHero)}
-                  >
-                    <PlayCircle className="mr-2 h-5 w-5" />
-                    Watch trailer
-                  </Button>
+                  <Btn className="px-7 py-3" onClick={() => setOpenMovie(activeHero)}>
+                    <Ticket className="h-5 w-5" /> Book now
+                  </Btn>
+                  <Btn variant="outline" className="px-7 py-3" onClick={() => setOpenMovie(activeHero)}>
+                    <PlayCircle className="h-5 w-5" /> Watch trailer
+                  </Btn>
                 </div>
 
                 <div className="mt-8 flex items-center gap-3">
-                  <Button
+                  <Btn
                     variant="ghost"
-                    className="rounded-full"
+                    className="h-10 w-10 rounded-full p-0"
                     onClick={() => setHeroIndex((i) => (i - 1 + heroMovies.length) % heroMovies.length)}
                     aria-label="Previous"
                   >
                     <ChevronLeft className="h-5 w-5" />
-                  </Button>
+                  </Btn>
 
                   <div className="flex items-center gap-2">
                     {heroMovies.map((_, i) => (
@@ -392,7 +437,7 @@ export default function App() {
                         key={i}
                         className={cx(
                           "h-2.5 w-2.5 rounded-full transition",
-                          i === heroIndex ? "bg-zinc-900" : "bg-zinc-300"
+                          i === heroIndex ? "bg-zinc-950" : "bg-zinc-300"
                         )}
                         onClick={() => setHeroIndex(i)}
                         aria-label={`Go to slide ${i + 1}`}
@@ -400,18 +445,18 @@ export default function App() {
                     ))}
                   </div>
 
-                  <Button
+                  <Btn
                     variant="ghost"
-                    className="rounded-full"
+                    className="h-10 w-10 rounded-full p-0"
                     onClick={() => setHeroIndex((i) => (i + 1) % heroMovies.length)}
                     aria-label="Next"
                   >
                     <ChevronRight className="h-5 w-5" />
-                  </Button>
+                  </Btn>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center md:justify-end" ref={heroRef}>
+              <div className="flex items-center justify-center md:justify-end">
                 <motion.div
                   key={activeHero.id}
                   initial={{ opacity: 0, y: 14, scale: 0.98 }}
@@ -420,13 +465,8 @@ export default function App() {
                   transition={{ duration: 0.35 }}
                   className="w-full max-w-[360px]"
                 >
-                  <div className="relative overflow-hidden rounded-[26px] border bg-white shadow-sm">
-                    <img
-                      src={activeHero.poster}
-                      alt={activeHero.title}
-                      className="aspect-[3/4] w-full object-cover"
-                      loading="lazy"
-                    />
+                  <div className="relative overflow-hidden rounded-[26px] border border-zinc-200 bg-white shadow-sm">
+                    <img src={activeHero.poster} alt={activeHero.title} className="aspect-[3/4] w-full object-cover" />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent p-4">
                       <div className="text-sm font-semibold text-white">{activeHero.title}</div>
                       <div className="mt-1 text-xs text-white/80">
@@ -443,73 +483,70 @@ export default function App() {
 
       {/* Controls */}
       <section className="mx-auto max-w-7xl px-4 pt-6">
-        <div className="grid gap-4 rounded-[22px] border bg-white p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-center">
+        <div className="grid gap-4 rounded-[22px] border border-zinc-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-center">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative w-full md:max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search movies, genres, languages..."
-                className="h-11 rounded-full pl-10"
+                className="pl-11"
               />
             </div>
 
-            <Tabs value={tab} onValueChange={setTab} className="w-full md:w-auto">
-              <TabsList className="h-11 rounded-full">
-                <TabsTrigger value="now" className="rounded-full">
-                  Now Showing
-                </TabsTrigger>
-                <TabsTrigger value="soon" className="rounded-full">
-                  Coming Soon
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="now" />
-              <TabsContent value="soon" />
-            </Tabs>
+            <div className="flex w-full items-center gap-2 md:w-auto">
+              <TabBtn active={tab === "now"} onClick={() => setTab("now")}>
+                Now Showing
+              </TabBtn>
+              <TabBtn active={tab === "soon"} onClick={() => setTab("soon")}>
+                Coming Soon
+              </TabBtn>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
-            <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="h-11 w-[190px] rounded-full">
-                <ArrowUpDown className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Sort" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="popularity">Popularity</SelectItem>
-                <SelectItem value="rating">Rating</SelectItem>
-                <SelectItem value="duration">Duration</SelectItem>
-                <SelectItem value="az">A → Z</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="h-11 w-[190px] appearance-none rounded-full border border-zinc-200 bg-white px-4 pr-10 text-sm font-semibold outline-none ring-zinc-950/10 focus:ring-4"
+              >
+                <option value="popularity">Popularity</option>
+                <option value="rating">Rating</option>
+                <option value="duration">Duration</option>
+                <option value="az">A → Z</option>
+              </select>
+              <ArrowUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            </div>
 
-            <Button variant="outline" className="h-11 rounded-full" onClick={clearFilters}>
+            <Btn variant="outline" className="h-11" onClick={clearAll}>
               Clear
-            </Button>
+            </Btn>
           </div>
         </div>
       </section>
 
-      {/* Filters + Grid */}
+      {/* Grid */}
       <section className="mx-auto max-w-7xl px-4 py-6">
         <div className="grid gap-6 md:grid-cols-[280px_1fr]">
           <FiltersPanel
             allLangs={allLangs}
             allGenres={allGenres}
             allFormats={allFormats}
-            selectedLangs={selectedLangs}
-            selectedGenres={selectedGenres}
-            selectedFormats={selectedFormats}
-            toggleLang={(v) => toggleInSet(setSelectedLangs, v)}
-            toggleGenre={(v) => toggleInSet(setSelectedGenres, v)}
-            toggleFormat={(v) => toggleInSet(setSelectedFormats, v)}
+            langs={langs}
+            genres={genres}
+            formats={formats}
+            toggleLang={(v) => toggleInSet(setLangs, v)}
+            toggleGenre={(v) => toggleInSet(setGenres, v)}
+            toggleFormat={(v) => toggleInSet(setFormats, v)}
           />
 
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div className="text-sm text-zinc-600">
-                Showing <span className="font-semibold text-zinc-900">{filtered.length}</span> movies in{" "}
-                <span className="font-semibold text-zinc-900">{location.city}</span>
+                Showing <span className="font-semibold text-zinc-950">{filtered.length}</span> movies in{" "}
+                <span className="font-semibold text-zinc-950">{location.city}</span>
               </div>
             </div>
 
@@ -520,12 +557,12 @@ export default function App() {
             </div>
 
             {!filtered.length && (
-              <div className="mt-10 rounded-[22px] border bg-zinc-50 p-8 text-center">
-                <div className="text-lg font-semibold">No movies found</div>
+              <div className="mt-10 rounded-[22px] border border-zinc-200 bg-zinc-50 p-8 text-center">
+                <div className="text-lg font-bold">No movies found</div>
                 <div className="mt-1 text-sm text-zinc-600">Try clearing filters or searching a different name.</div>
-                <Button className="mt-4 rounded-full" onClick={clearFilters}>
+                <Btn className="mt-4" onClick={clearAll}>
                   Reset
-                </Button>
+                </Btn>
               </div>
             )}
           </div>
@@ -534,24 +571,22 @@ export default function App() {
 
       <Footer />
 
-      {/* Movie Modal */}
-      <Dialog open={!!openMovie} onOpenChange={(v) => !v && setOpenMovie(null)}>
-        <DialogContent className="max-w-3xl rounded-[26px] p-0">
-          {openMovie && <MovieModal movie={openMovie} onClose={() => setOpenMovie(null)} />}
-        </DialogContent>
-      </Dialog>
+      {/* Modal */}
+      <Modal open={!!openMovie} onClose={() => setOpenMovie(null)}>
+        {openMovie && <MovieModal movie={openMovie} onClose={() => setOpenMovie(null)} />}
+      </Modal>
     </div>
   );
 }
 
 // -------------------------
-// Top Nav
+// TopNav
 // -------------------------
 function TopNav({ activeNav, setActiveNav, location, setLocation }) {
   const [openLoc, setOpenLoc] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/80 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-4">
           {/* Logo */}
@@ -566,16 +601,12 @@ function TopNav({ activeNav, setActiveNav, location, setLocation }) {
           </div>
 
           {/* Location */}
-          <div className="hidden items-center gap-2 md:flex">
-            <Button
-              variant="ghost"
-              className="h-10 rounded-full"
-              onClick={() => setOpenLoc((v) => !v)}
-            >
-              <MapPin className="mr-2 h-4 w-4" />
+          <div className="relative hidden md:block">
+            <Btn variant="ghost" className="h-10" onClick={() => setOpenLoc((v) => !v)}>
+              <MapPin className="h-4 w-4" />
               <span className="font-semibold">{location.city}</span>
-              <span className="ml-2 text-zinc-500">{location.state}</span>
-            </Button>
+              <span className="ml-1 text-zinc-500">{location.state}</span>
+            </Btn>
 
             <AnimatePresence>
               {openLoc && (
@@ -583,8 +614,8 @@ function TopNav({ activeNav, setActiveNav, location, setLocation }) {
                   initial={{ opacity: 0, y: -8, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute left-4 top-[64px] w-[320px] overflow-hidden rounded-[18px] border bg-white shadow-lg"
+                  transition={{ duration: 0.18 }}
+                  className="absolute left-0 top-[52px] w-[320px] overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-lg"
                 >
                   <div className="p-3">
                     <div className="mb-2 text-xs font-semibold text-zinc-500">Choose city</div>
@@ -613,7 +644,7 @@ function TopNav({ activeNav, setActiveNav, location, setLocation }) {
           </div>
         </div>
 
-        {/* Nav Items */}
+        {/* Nav */}
         <nav className="hidden items-center gap-2 lg:flex">
           {NAV_ITEMS.map((item) => {
             const active = item === activeNav;
@@ -632,85 +663,79 @@ function TopNav({ activeNav, setActiveNav, location, setLocation }) {
           })}
         </nav>
 
-        {/* Right Icons */}
+        {/* Right */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" className="h-10 w-10 rounded-full" aria-label="Search">
+          <Btn variant="ghost" className="h-10 w-10 rounded-full p-0" aria-label="Search">
             <Search className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" className="h-10 w-10 rounded-full" aria-label="Account">
+          </Btn>
+          <Btn variant="ghost" className="h-10 w-10 rounded-full p-0" aria-label="Account">
             <UserCircle2 className="h-5 w-5" />
-          </Button>
+          </Btn>
         </div>
       </div>
     </header>
   );
 }
 
+function TabBtn({ active, children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cx(
+        "h-11 flex-1 rounded-full px-4 text-sm font-bold transition md:flex-none",
+        active ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 // -------------------------
 // Filters
 // -------------------------
-function FiltersPanel({
-  allLangs,
-  allGenres,
-  allFormats,
-  selectedLangs,
-  selectedGenres,
-  selectedFormats,
-  toggleLang,
-  toggleGenre,
-  toggleFormat,
-}) {
+function FiltersPanel({ allLangs, allGenres, allFormats, langs, genres, formats, toggleLang, toggleGenre, toggleFormat }) {
   return (
-    <aside className="rounded-[22px] border bg-white p-4 shadow-sm">
+    <aside className="rounded-[22px] border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <Filter className="h-4 w-4" />
-        <div className="text-sm font-bold">Filters</div>
+        <div className="text-sm font-black">Filters</div>
       </div>
 
       <div className="space-y-4">
-        <FilterGroup title="Language">
+        <Group title="Language">
           <div className="grid gap-2">
             {allLangs.map((l) => (
-              <CheckRow key={l} label={l} checked={selectedLangs.has(l)} onChange={() => toggleLang(l)} />
+              <CheckRow key={l} label={l} checked={langs.has(l)} onClick={() => toggleLang(l)} />
             ))}
           </div>
-        </FilterGroup>
+        </Group>
 
-        <Separator />
+        <Divider />
 
-        <FilterGroup title="Genre">
+        <Group title="Genre">
           <div className="grid gap-2">
             {allGenres.map((g) => (
-              <CheckRow
-                key={g}
-                label={g}
-                checked={selectedGenres.has(g)}
-                onChange={() => toggleGenre(g)}
-              />
+              <CheckRow key={g} label={g} checked={genres.has(g)} onClick={() => toggleGenre(g)} />
             ))}
           </div>
-        </FilterGroup>
+        </Group>
 
-        <Separator />
+        <Divider />
 
-        <FilterGroup title="Format">
+        <Group title="Format">
           <div className="grid gap-2">
             {allFormats.map((f) => (
-              <CheckRow
-                key={f}
-                label={f}
-                checked={selectedFormats.has(f)}
-                onChange={() => toggleFormat(f)}
-              />
+              <CheckRow key={f} label={f} checked={formats.has(f)} onClick={() => toggleFormat(f)} />
             ))}
           </div>
-        </FilterGroup>
+        </Group>
       </div>
     </aside>
   );
 }
 
-function FilterGroup({ title, children }) {
+function Group({ title, children }) {
   return (
     <div>
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{title}</div>
@@ -719,12 +744,25 @@ function FilterGroup({ title, children }) {
   );
 }
 
-function CheckRow({ label, checked, onChange }) {
+function CheckRow({ label, checked, onClick }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-2 hover:bg-zinc-50">
-      <Checkbox checked={checked} onCheckedChange={onChange} />
-      <span className="text-sm font-medium text-zinc-800">{label}</span>
-    </label>
+    <button
+      onClick={onClick}
+      className={cx(
+        "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-zinc-50",
+        checked ? "bg-zinc-50" : ""
+      )}
+    >
+      <span
+        className={cx(
+          "grid h-5 w-5 place-items-center rounded-md border text-[12px] font-black",
+          checked ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-300 bg-white text-transparent"
+        )}
+      >
+        ✓
+      </span>
+      <span className="text-sm font-semibold text-zinc-800">{label}</span>
+    </button>
   );
 }
 
@@ -733,159 +771,134 @@ function CheckRow({ label, checked, onChange }) {
 // -------------------------
 function MovieCard({ movie, onOpen }) {
   return (
-    <Card className="overflow-hidden rounded-[22px] border bg-white shadow-sm">
+    <Card className="overflow-hidden">
       <div className="relative">
-        <img
-          src={movie.poster}
-          alt={movie.title}
-          className="aspect-[3/4] w-full object-cover"
-          loading="lazy"
-        />
+        <img src={movie.poster} alt={movie.title} className="aspect-[3/4] w-full object-cover" loading="lazy" />
+
         <div className="absolute left-3 top-3 flex items-center gap-2">
-          <Badge className="rounded-full" variant="secondary">
-            {movie.cert}
-          </Badge>
-          <Badge className="rounded-full" variant={movie.status === "Now Showing" ? "default" : "outline"}>
-            {movie.status}
-          </Badge>
+          <Badge>{movie.cert}</Badge>
+          <Badge variant={movie.status === "Now Showing" ? "dark" : "outline"}>{movie.status}</Badge>
         </div>
 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent p-3">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-bold text-white">{movie.title}</div>
+            <div className="text-sm font-black text-white">{movie.title}</div>
             <div className="flex items-center gap-1 text-xs text-white/90">
               <Star className="h-4 w-4" />
-              <span className="font-semibold">{movie.rating}</span>
+              <span className="font-bold">{movie.rating}</span>
             </div>
           </div>
-          <div className="mt-1 text-xs text-white/75">
-            {movie.lang} • {movie.genres.join(", ")}
-          </div>
+          <div className="mt-1 text-xs text-white/75">{movie.lang} • {movie.genres.join(", ")}</div>
         </div>
       </div>
 
-      <CardContent className="space-y-3 p-4">
+      <div className="space-y-3 p-4">
         <div className="flex flex-wrap gap-2">
           {movie.format.map((f) => (
-            <Badge key={f} variant="outline" className="rounded-full">
-              {f}
-            </Badge>
+            <Badge key={f} variant="outline">{f}</Badge>
           ))}
-          <Badge variant="outline" className="rounded-full">
+          <Badge variant="outline">
             <Clock className="mr-1 h-3.5 w-3.5" />
             {minutesToHrMin(movie.durationMins)}
           </Badge>
         </div>
 
-        <Button className="w-full rounded-full" onClick={onOpen}>
-          <Ticket className="mr-2 h-4 w-4" />
-          Book now
-        </Button>
-      </CardContent>
+        <Btn className="w-full" onClick={onOpen}>
+          <Ticket className="h-4 w-4" /> Book now
+        </Btn>
+      </div>
     </Card>
   );
 }
 
 // -------------------------
-// Modal
+// Movie Modal
 // -------------------------
 function MovieModal({ movie, onClose }) {
   return (
-    <div className="overflow-hidden">
-      <div className="relative">
-        <div className="absolute inset-0">
-          <img src={movie.banner} alt="banner" className="h-full w-full object-cover opacity-25" />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/85 to-white" />
+    <div className="relative">
+      <div className="absolute inset-0">
+        <img src={movie.banner} alt="banner" className="h-full w-full object-cover opacity-25" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/85 to-white" />
+      </div>
+
+      <div className="relative p-6 md:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="hidden overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm md:block">
+              <img src={movie.poster} alt={movie.title} className="h-[170px] w-[130px] object-cover" />
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-2xl font-black tracking-tight md:text-3xl">{movie.title}</h2>
+                <Badge>{movie.cert}</Badge>
+                <Badge variant="outline">{movie.status}</Badge>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-700">
+                <span className="font-semibold">{movie.lang}</span>
+                <span className="text-zinc-400">•</span>
+                <span>{movie.genres.join(", ")}</span>
+                <span className="text-zinc-400">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {minutesToHrMin(movie.durationMins)}
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <span className="inline-flex items-center gap-1 rounded-full bg-zinc-950 px-3 py-1 text-white">
+                  <Star className="h-4 w-4" />
+                  <span className="font-bold">{movie.rating}</span>
+                </span>
+                <span className="text-zinc-600">{movie.votes.toLocaleString()} votes</span>
+              </div>
+            </div>
+          </div>
+
+          <Btn variant="ghost" className="h-10 w-10 rounded-full p-0" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Btn>
         </div>
 
-        <div className="relative p-6 md:p-7">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="hidden overflow-hidden rounded-2xl border bg-white shadow-sm md:block">
-                <img src={movie.poster} alt={movie.title} className="h-[170px] w-[130px] object-cover" />
-              </div>
+        <div className="mt-6 grid gap-5 md:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <div className="text-sm font-black">About</div>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-700">{movie.synopsis}</p>
 
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-2xl font-black tracking-tight md:text-3xl">{movie.title}</h2>
-                  <Badge variant="secondary" className="rounded-full">
-                    {movie.cert}
-                  </Badge>
-                  <Badge variant="outline" className="rounded-full">
-                    {movie.status}
-                  </Badge>
-                </div>
-
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-700">
-                  <span className="font-semibold">{movie.lang}</span>
-                  <span className="text-zinc-400">•</span>
-                  <span>{movie.genres.join(", ")}</span>
-                  <span className="text-zinc-400">•</span>
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {minutesToHrMin(movie.durationMins)}
-                  </span>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 text-sm">
-                  <div className="inline-flex items-center gap-1 rounded-full bg-zinc-950 px-3 py-1 text-white">
-                    <Star className="h-4 w-4" />
-                    <span className="font-semibold">{movie.rating}</span>
-                  </div>
-                  <span className="text-zinc-600">{movie.votes.toLocaleString()} votes</span>
-                </div>
-              </div>
-            </div>
-
-            <Button variant="ghost" className="h-10 w-10 rounded-full" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-[1.2fr_0.8fr]">
-            <div>
-              <div className="text-sm font-bold">About</div>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{movie.synopsis}</p>
-
-              <div className="mt-5">
-                <div className="text-sm font-bold">Cast</div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {movie.cast.map((c) => (
-                    <Badge key={c} variant="secondary" className="rounded-full">
-                      {c}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[22px] border bg-white p-4 shadow-sm">
-              <div className="text-sm font-bold">Book tickets</div>
-              <div className="mt-2 text-sm text-zinc-600">Select your preferred format</div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {movie.format.map((f) => (
-                  <Badge key={f} variant="outline" className="rounded-full px-3 py-1">
-                    {f}
-                  </Badge>
+            <div className="mt-5">
+              <div className="text-sm font-black">Cast</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {movie.cast.map((c) => (
+                  <Badge key={c}>{c}</Badge>
                 ))}
               </div>
-
-              <Button className="mt-4 w-full rounded-full" size="lg">
-                <Ticket className="mr-2 h-5 w-5" />
-                Proceed
-              </Button>
-
-              <Button className="mt-2 w-full rounded-full" variant="outline">
-                <PlayCircle className="mr-2 h-5 w-5" />
-                Trailer
-              </Button>
-
-              <div className="mt-4 text-xs text-zinc-500">
-                Note: This is a UI clone demo. Connect your backend for real booking.
-              </div>
             </div>
           </div>
+
+          <Card className="p-4">
+            <div className="text-sm font-black">Book tickets</div>
+            <div className="mt-2 text-sm text-zinc-600">Select your preferred format</div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {movie.format.map((f) => (
+                <Badge key={f} variant="outline">{f}</Badge>
+              ))}
+            </div>
+
+            <Btn className="mt-4 w-full py-3">
+              <Ticket className="h-5 w-5" /> Proceed
+            </Btn>
+
+            <Btn variant="outline" className="mt-2 w-full py-3">
+              <PlayCircle className="h-5 w-5" /> Trailer
+            </Btn>
+
+            <div className="mt-4 text-xs text-zinc-500">
+              Note: This is a UI clone demo. Connect backend for real booking.
+            </div>
+          </Card>
         </div>
       </div>
     </div>
@@ -897,14 +910,12 @@ function MovieModal({ movie, onClose }) {
 // -------------------------
 function Footer() {
   return (
-    <footer className="border-t bg-white">
+    <footer className="border-t border-zinc-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-10">
         <div className="grid gap-6 md:grid-cols-3">
           <div>
             <div className="text-sm font-black">district</div>
-            <div className="mt-1 text-sm text-zinc-600">
-              Movie ticket booking UI clone — built in React + Tailwind.
-            </div>
+            <div className="mt-1 text-sm text-zinc-600">Movie ticket booking UI clone — React + Tailwind.</div>
           </div>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Pages</div>
@@ -923,7 +934,7 @@ function Footer() {
             </div>
           </div>
         </div>
-        <div className="mt-8 text-xs text-zinc-500">© {new Date().getFullYear()} Demo UI. All rights reserved.</div>
+        <div className="mt-8 text-xs text-zinc-500">© {new Date().getFullYear()} Demo UI</div>
       </div>
     </footer>
   );
